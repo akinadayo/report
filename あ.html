@@ -114,8 +114,8 @@ header{padding:16px 24px;border-bottom:2px solid var(--accent);background:var(--
 <div id="toast" class="toast hidden"></div>
 
 <script type="module">
-const API_KEY = "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";
-const MODEL = "openrouter/horizon-alpha";
+// IMPORTANT: API_KEY is no longer stored here for security.
+// It is now handled by a serverless function.
 
 const chatEl = document.getElementById('chat');
 const inputEl = document.getElementById('text');
@@ -186,6 +186,7 @@ async function downloadPDF(headline, body) {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'a4');
 
+    // Add Japanese fonts
     pdf.addFont('SawarabiMincho-Regular.ttf', 'SawarabiMincho', 'normal');
     pdf.addFont('NotoSansJP-Bold.ttf', 'NotoSansJP', 'bold');
 
@@ -194,6 +195,7 @@ async function downloadPDF(headline, body) {
     const usableWidth = pageWidth - margin * 2;
     let y = margin;
 
+    // Headline
     pdf.setFont('NotoSansJP', 'bold');
     pdf.setFontSize(24);
     pdf.setTextColor('#333333');
@@ -201,6 +203,7 @@ async function downloadPDF(headline, body) {
     pdf.text(headlineLines, pageWidth / 2, y, { align: 'center' });
     y += (headlineLines.length * 10) + 10;
 
+    // Body
     pdf.setFont('SawarabiMincho', 'normal');
     pdf.setTextColor('#000000');
 
@@ -213,6 +216,7 @@ async function downloadPDF(headline, body) {
         }
 
         if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
+            // Subtitle
             pdf.setFont('NotoSansJP', 'bold');
             pdf.setFontSize(16);
             pdf.setTextColor('#007bff');
@@ -221,6 +225,7 @@ async function downloadPDF(headline, body) {
             pdf.text(subTitleLines, margin, y);
             y += (subTitleLines.length * 7) + 5;
         } else {
+            // Normal text
             pdf.setFont('SawarabiMincho', 'normal');
             pdf.setFontSize(11);
             pdf.setTextColor('#000000');
@@ -248,25 +253,18 @@ function setStatus(msg, showProgress = false) {
 
 async function callOpenRouter(messages, retryCount = 0){
   locked = true;
-  const body = {
-    model: MODEL,
-    temperature: 0.9,
-    max_tokens: 2500,
-    messages
-  };
-  
+  // The URL now points to our serverless function
+  const API_ENDPOINT = '/.netlify/functions/openrouter'; 
+
   try {
-    const resp = await fetch("https://openrouter.ai/api/v1/chat/completions",{
+    const resp = await fetch(API_ENDPOINT, {
       method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization": `Bearer ${API_KEY}`
-      },
-      body: JSON.stringify(body)
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ messages })
     });
     if(!resp.ok) throw new Error("API error: " + resp.status);
     const data = await resp.json();
-    return data?.choices?.[0]?.message?.content ?? "";
+    return data.reply ?? "";
   } catch(e) {
       console.error(e);
       if (retryCount < 1) {
@@ -298,7 +296,7 @@ async function generateArticle(){
   setStatus("🚨 緊急速報作成中 🚨", true);
   const sys = {
     role: "system",
-    content: `これまでの取材内容を元に、${userName}さんに関する衝撃的なスクープ記事を書いてください.\n\n要件:\n- 見出しは「${userName}」を必ず含み、超インパクトのあるものに。\n- 本文は1500〜2400字程度で、複数のセクションに分けること。\n- 各セクションの最初に、**サブタイトル**を太字アスタリスク（例：**衝撃の第一声**）で必ず付けること。\n- 週刊誌のような大げさでドラマチックな文体で。「関係者の証言によると」「衝撃の事実が判明」などの決まり文句を多用。\n- ユーモアと誇張を効かせて、読者が爆笑するような内容に。\n- 日常の些細な出来事も世界的大事件のように扱う。\n\n形式:\n見出し\n\n**サブタイトル1**\n\n本文1\n\n**サブタイトル2**\n\n本文2...`
+    content: `これまでの取材内容を元に、${userName}さんに関する衝撃的なスクープ記事を書いてください。\n\n要件：\n- 見出しは「${userName}」を必ず含み、超インパクトのあるものに。\n- 本文は1500〜2400字程度で、複数のセクションに分けること。\n- 各セクションの最初に、**サブタイトル**を太字アスタリスク（例：**衝撃の第一声**）で必ず付けること。\n- 週刊誌のような大げさでドラマチックな文体で。「関係者の証言によると」「衝撃の事実が判明」などの決まり文句を多用。\n- ユーモアと誇張を効かせて、読者が爆笑するような内容に。\n- 日常の些細な出来事も世界的大事件のように扱う。\n\n形式：\n見出し\n\n**サブタイトル1**\n\n本文1\n\n**サブタイトル2**\n\n本文2...`
   };
   
   try{
@@ -351,36 +349,30 @@ function boot(){
   setStatus("待機中");
 }
 
-// Load fonts for jsPDF from Base64 encoded data
-function loadFonts() {
-    const { jsPDF } = window.jspdf;
-    // This is a simplified version of what was in あ.html
-    // In a real scenario, you would fetch the base64 data or have it here.
-    // For now, we will use the previously attempted fetch method with corrected URLs
-    // as a fallback, since we cannot directly embed large base64 strings.
-    const fontUrls = [
-        'https://raw.githack.com/google/fonts/main/ofl/sawarabimincho/SawarabiMincho-Regular.ttf',
-        'https://raw.githack.com/google/fonts/main/ofl/notosansjp/static/NotoSansJP-Bold.ttf'
-    ];
+// Load fonts for jsPDF
+async function loadFonts() {
+    try {
+        const fontUrls = [
+            'https://fonts.gstatic.com/s/sawarabimincho/v19/8QIRdiDaitzr7tUwq0J2sK5UA_6J.ttf',
+            'https://fonts.gstatic.com/s/notosansjp/v52/-F62fjtqLzI2JPCgQBnw7HFowAIO2lZ9hg.ttf'
+        ];
+        const [sawarabi, notosans] = await Promise.all(fontUrls.map(url => fetch(url).then(r => r.arrayBuffer())));
 
-    Promise.all(fontUrls.map(url => fetch(url).then(r => {
-        if (!r.ok) throw new Error(`Failed to fetch font: ${r.status} ${r.statusText} for ${url}`);
-        return r.arrayBuffer();
-    }))).then(([sawarabi, notosans]) => {
+        const { jsPDF } = window.jspdf;
         jsPDF.API.events.push(['addFonts', function() {
             this.addFileToVFS('SawarabiMincho-Regular.ttf', new Uint8Array(sawarabi));
             this.addFont('SawarabiMincho-Regular.ttf', 'SawarabiMincho', 'normal');
             this.addFileToVFS('NotoSansJP-Bold.ttf', new Uint8Array(notosans));
             this.addFont('NotoSansJP-Bold.ttf', 'NotoSansJP', 'bold');
         }]);
-    }).catch(e => {
+    } catch (e) {
         console.error("Font loading failed", e);
         showToast("フォントの読み込みに失敗しました。PDFが正しく表示されない可能性があります。");
-    });
+    }
 }
 
 loadFonts();
 
 </script>
 </body>
-</html
+</html>
