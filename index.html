@@ -298,7 +298,7 @@ async function generateArticle(){
   setStatus("🚨 緊急速報作成中 🚨", true);
   const sys = {
     role: "system",
-    content: `これまでの取材内容を元に、${userName}さんに関する衝撃的なスクープ記事を書いてください.\n\n要件:\n- 見出しは「${userName}」を必ず含み、超インパクトのあるものに。\n- 本文は1500〜2400字程度で、複数のセクションに分けること。\n- 各セクションの最初に、**サブタイトル**を太字アスタリスク（例：**衝撃の第一声**）で必ず付けること。\n- 週刊誌のような大げさでドラマチックな文体で。「関係者の証言によると」「衝撃の事実が判明」などの決まり文句を多用。\n- ユーモアと誇張を効かせて、読者が爆笑するような内容に。\n- 日常の些細な出来事も世界的大事件のように扱う。\n\n形式:\n見出し\n\n**サブタイトル1**\n\n本文1\n\n**サブタイトル2**\n\n本文2...`
+    content: `これまでの取材内容を元に、${userName}さんに関する衝撃的なスクープ記事を書いてください.\n\n要件：\n- 見出しは「${userName}」を必ず含み、超インパクトのあるものに。\n- 本文は1500〜2400字程度で、複数のセクションに分けること。\n- 各セクションの最初に、**サブタイトル**を太字アスタリスク（例：**衝撃の第一声**）で必ず付けること。\n- 週刊誌のような大げさでドラマチックな文体で。「関係者の証言によると」「衝撃の事実が判明」などの決まり文句を多用。\n- ユーモアと誇張を効かせて、読者が爆笑するような内容に。\n- 日常の些細な出来事も世界的大事件のように扱う。\n\n形式：\n見出し\n\n**サブタイトル1**\n\n本文1\n\n**サブタイトル2**\n\n本文2...`
   };
   
   try{
@@ -351,36 +351,32 @@ function boot(){
   setStatus("待機中");
 }
 
-// Load fonts for jsPDF from Base64 encoded data
-function loadFonts() {
-    const { jsPDF } = window.jspdf;
-    // This is a simplified version of what was in あ.html
-    // In a real scenario, you would fetch the base64 data or have it here.
-    // For now, we will use the previously attempted fetch method with corrected URLs
-    // as a fallback, since we cannot directly embed large base64 strings.
-    const fontUrls = [
-        'https://raw.githack.com/google/fonts/main/ofl/sawarabimincho/SawarabiMincho-Regular.ttf',
-        'https://raw.githack.com/google/fonts/main/ofl/notosansjp/static/NotoSansJP-Bold.ttf'
-    ];
+async function loadFonts() {
+    try {
+        const fontUrls = [
+            './fonts/SawarabiMincho-Regular.ttf',
+            './fonts/NotoSansJP-Bold.ttf'
+        ];
+        const [sawarabi, notosans] = await Promise.all(fontUrls.map(url => fetch(url).then(r => {
+            if (!r.ok) throw new Error(`Failed to fetch font: ${r.status} ${r.statusText} for ${url}`);
+            return r.arrayBuffer();
+        })));
 
-    Promise.all(fontUrls.map(url => fetch(url).then(r => {
-        if (!r.ok) throw new Error(`Failed to fetch font: ${r.status} ${r.statusText} for ${url}`);
-        return r.arrayBuffer();
-    }))).then(([sawarabi, notosans]) => {
+        const { jsPDF } = window.jspdf;
         jsPDF.API.events.push(['addFonts', function() {
             this.addFileToVFS('SawarabiMincho-Regular.ttf', new Uint8Array(sawarabi));
             this.addFont('SawarabiMincho-Regular.ttf', 'SawarabiMincho', 'normal');
             this.addFileToVFS('NotoSansJP-Bold.ttf', new Uint8Array(notosans));
             this.addFont('NotoSansJP-Bold.ttf', 'NotoSansJP', 'bold');
         }]);
-    }).catch(e => {
+    } catch (e) {
         console.error("Font loading failed", e);
         showToast("フォントの読み込みに失敗しました。PDFが正しく表示されない可能性があります。");
-    });
+    }
 }
 
 loadFonts();
 
 </script>
 </body>
-</html
+</html>
