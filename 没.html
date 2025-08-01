@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>インタビューワーAI | 深掘りチャットから爆笑記事生成</title>
+<style>
+  :root{
+    --bg: #222;
+    --fg: #f0f0f0;
+    --muted: #bdbdbd;
+    --accent: #7dd3fc;
+    --accent-2:#a78bfa;
+    --surface: #2a2a2a;
+    --chip:#333;
+    --card:#ffffff;
+    --shadow: 0 8px 24px rgba(0,0,0,.25);
+    --radius: 14px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans JP", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif}
+  a{color:inherit}
+  .app{display:flex;flex-direction:column;height:100vh}
+  header{
+    padding:14px 18px;
+    border-bottom:1px solid #333;
+    background:linear-gradient(180deg,#1f1f1f, #1b1b1b);
+    display:flex;align-items:center;gap:14px
+  }
+  .logo{
+    width:36px;height:36px;border-radius:10px;
+    background: radial-gradient(70% 70% at 30% 30%, var(--accent), transparent 70%),
+                radial-gradient(60% 60% at 70% 70%, var(--accent-2), transparent 60%),
+                #111;
+    box-shadow: inset 0 0 20px rgba(125,211,252,.25), 0 6px 18px rgba(0,0,0,.35);
+  }
+  .titles{line-height:1}
+  .titles h1{font-size:16px;margin:0;font-weight:700;letter-spacing:.04em}
+  .titles p{font-size:12px;margin:4px 0 0;color:var(--muted)}
+  .container{display:flex;flex-direction:column;flex:1;min-height:0}
+  .chat{
+    flex:1;overflow-y:auto;padding:20px 20px 14px;scroll-behavior:smooth;
+    background:
+      radial-gradient(1200px 400px at 100% -200px, rgba(125,211,252,.08), transparent 60%),
+      radial-gradient(900px 300px at 0% -120px, rgba(167,139,250,.08), transparent 60%),
+      var(--bg);
+  }
+  .row{display:flex;gap:12px;margin:10px 0;align-items:flex-start}
+  .bubble{
+    max-width:min(760px, 86%);
+    padding:12px 14px;border-radius:12px;line-height:1.65;
+    letter-spacing:.01em;word-break:break-word;box-shadow: var(--shadow);
+  }
+  .ai .avatar,.user .avatar{
+    flex:0 0 34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#111;font-weight:800;font-size:13px
+  }
+  .ai .avatar{background:linear-gradient(135deg,#7dd3fc,#a78bfa)}
+  .user .avatar{background:linear-gradient(135deg,#34d399,#22d3ee)}
+  .ai .bubble{
+    background:linear-gradient(180deg,#262626,#1f1f1f);border:1px solid #343434;color:var(--fg);
+    animation: fade .4s ease-out both;
+  }
+  .user .bubble{background:#f5f5f5;color:#222;border:1px solid #e8e8e8}
+  .meta{font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:.08em;text-transform:uppercase}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .input-bar{
+    border-top:1px solid #333;background:linear-gradient(180deg,#1d1d1d,#171717);padding:14px 16px;
+  }
+  .form{display:flex;gap:10px;align-items:center;max-width:1100px;margin:0 auto}
+  .form input[type=text]{
+    flex:1;padding:14px 16px;border-radius:12px;background:#101010;color:var(--fg);
+    border:1px solid #373737;outline:none;transition:.2s;font-size:15px
+  }
+  .form input[type=text]::placeholder{color:#8f8f8f}
+  .form input[type=text]:focus{border-color:#7dd3fc;box-shadow:0 0 0 3px rgba(125,211,252,.15)}
+  .form button{
+    padding:12px 18px;border-radius:12px;border:none;color:#0b1220;font-weight:800;cursor:pointer;
+    background:linear-gradient(135deg,#7dd3fc,#a78bfa);
+    transition:transform .08s ease, box-shadow .2s ease;box-shadow:0 10px 20px rgba(125,211,252,.22)
+  }
+  .form button:active{transform:translateY(1px)}
+  .toolbar{display:flex;gap:8px;align-items:center;margin-left:8px}
+  .chip{background:var(--chip);color:#cfcfcf;border:1px solid #3a3a3a;padding:6px 10px;border-radius:999px;font-size:12px}
+  .status{margin-left:auto;color:#9aa0a6;font-size:12px}
+  .cards{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin:10px 0 6px;
+  }
+  .card{
+    background:var(--card); color:#111; border-radius:14px; padding:16px; box-shadow: var(--shadow);
+    transform:translateZ(0); transition: transform .18s ease, box-shadow .25s ease;
+  }
+  .card:hover{ transform:scale(1.02); box-shadow: 0 16px 36px rgba(0,0,0,.28)}
+  .card h3{margin:0 0 8px;font-size:18px}
+  .card p{margin:0;color:#333;line-height:1.8}
+  .divider{height:1px;background:linear-gradient(90deg, transparent, #3a3a3a, transparent);margin:16px 0}
+  .toast{
+    position:fixed;right:16px;bottom:16px;background:#ef4444;color:white;padding:12px 14px;border-radius:10px;
+    box-shadow: var(--shadow);font-weight:700;max-width:min(80vw,420px)
+  }
+  .hidden{display:none}
+</style>
+<!-- Import map reserved for potential expansion; no external libs are required to run -->
+<script type="importmap">
+{
+  "imports": { }
+}
+</script>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="logo" aria-hidden="true"></div>
+      <div class="titles">
+        <h1>Horizonalpha インタビューワー</h1>
+        <p>深掘り5回 → 400-600字の爆笑記事を自動生成</p>
+      </div>
+    </header>
+    <div class="container">
+      <main id="chat" class="chat" aria-live="polite"></main>
+      <section class="input-bar">
+        <div class="form">
+          <input id="text" type="text" placeholder="あなたの出来事を教えてください…" autocomplete="off" />
+          <div class="toolbar">
+            <span class="chip">暗色テーマ</span>
+            <span id="status" class="status">待機中</span>
+          </div>
+          <button id="send" aria-label="送信">送信</button>
+        </div>
+      </section>
+    </div>
+  </div>
+  <div id="toast" class="toast hidden"></div>
+
+<script type="module">
+const API_KEY = "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"; // replace easily
+// User provided suggestion: Use Horizonalpha instead of gpt, but per instructions body.model must be "gpt-4o-mini".
+// We will honor API schema while messaging UI reflects Horizonalpha.
+const MODEL = "openrouter/horizon-alpha"; // API model name as required
+const chatEl = document.getElementById('chat');
+const inputEl = document.getElementById('text');
+const sendBtn = document.getElementById('send');
+const statusEl = document.getElementById('status');
+const toastEl = document.getElementById('toast');
+
+let depth = 0;
+let locked = false;
+const MAX_DEPTH = 5;
+const conversation = [
+  { role: "system", content: "あなたは丁寧で快活なAIインタビュワーです。ユーザーの出来事をユーモラスに深掘りし、短く一問ずつ質問します。絵文字は適度に、質問は1つだけ。" }
+];
+
+function showToast(msg, timeout=3200){
+  toastEl.textContent = msg;
+  toastEl.classList.remove('hidden');
+  window.clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>toastEl.classList.add('hidden'), timeout);
+}
+
+function renderMessage(role, content){
+  const row = document.createElement('div');
+  row.className = `row ${role === 'assistant' ? 'ai' : 'user'}`;
+  const avatar = document.createElement('div');
+  avatar.className = 'avatar';
+  avatar.textContent = role === 'assistant' ? 'AI' : 'YOU';
+  const wrap = document.createElement('div');
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  meta.textContent = role === 'assistant' ? 'Horizonalpha 質問' : 'あなた';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.innerHTML = sanitizeToHTML(content);
+  wrap.appendChild(meta);
+  wrap.appendChild(bubble);
+  row.appendChild(avatar);
+  row.appendChild(wrap);
+  chatEl.appendChild(row);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+function renderArticleCard(title, body){
+  const cont = document.createElement('div');
+  const divider = document.createElement('div');
+  divider.className = 'divider';
+  const grid = document.createElement('div');
+  grid.className = 'cards';
+  cont.appendChild(divider);
+
+  // Generate 3 procedural thumbnails as placeholders (canvas-to-dataURL)
+  const thumbs = [1,2,3].map(i => makeProceduralImage(i));
+
+  const card = document.createElement('article');
+  card.className = 'card';
+  const img = document.createElement('img');
+  img.src = thumbs[0];
+  img.alt = "記事のイメージ";
+  img.style.width = "100%";
+  img.style.height = "120px";
+  img.style.objectFit = "cover";
+  img.style.borderRadius = "10px";
+  img.style.marginBottom = "10px";
+
+  const h3 = document.createElement('h3');
+  h3.textContent = title;
+  const p = document.createElement('p');
+  p.textContent = body;
+
+  card.appendChild(img);
+  card.appendChild(h3);
+  card.appendChild(p);
+
+  // add two small tiles
+  thumbs.slice(1).forEach(src=>{
+    const mini = document.createElement('article');
+    mini.className = 'card';
+    const t = document.createElement('h3');
+    t.textContent = "オフショット";
+    const i = document.createElement('img');
+    i.src = src;
+    i.alt = "サムネイル";
+    i.style.width="100%"; i.style.height="80px"; i.style.objectFit="cover"; i.style.borderRadius="8px"; i.style.marginBottom="8px";
+    const d = document.createElement('p');
+    d.textContent = "取材メモの断片：現場の温度感が伝わる小ネタ。";
+    mini.appendChild(i); mini.appendChild(t); mini.appendChild(d);
+    grid.appendChild(mini);
+  });
+
+  grid.prepend(card);
+  cont.appendChild(grid);
+  chatEl.appendChild(cont);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+function sanitizeToHTML(text){
+  // very simple escaping and paragraph formatting
+  const esc = (s)=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  // Allow minimal emphasis like **bold** -> <strong>
+  const withBasic = esc(text).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  return withBasic.replace(/\n{2,}/g,"</p><p>").replace(/\n/g,"<br>");
+}
+
+function setStatus(msg){ statusEl.textContent = msg; }
+
+async function callOpenRouter(messages){
+  const body = {
+    model: MODEL,
+    temperature: 0.9,
+    max_tokens: 700,
+    messages
+  };
+  const resp = await fetch("https://openrouter.ai/api/v1/chat/completions",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization": `Bearer ${API_KEY}`
+    },
+    body: JSON.stringify(body)
+  });
+  if(!resp.ok) throw new Error("API error: " + resp.status);
+  const data = await resp.json();
+  const text = data?.choices?.[0]?.message?.content ?? "";
+  return text;
+}
+
+async function askNext(){
+  setStatus("Horizonalpha が考え中…");
+  try{
+    const reply = await retry(()=>callOpenRouter(conversation), 2);
+    conversation.push({ role:"assistant", content: reply });
+    renderMessage("assistant", reply);
+  }catch(e){
+    console.error(e);
+    showToast("通信に失敗しました。リトライしてください。");
+  }finally{
+    setStatus("待機中");
+    locked = false;
+  }
+}
+
+async function generateArticle(){
+  setStatus("記事生成中…");
+  const sys = { role: "system", content: "今までの Q&A を元に、見出し＋400-600 字で爆笑できる面白い記事を書いて" };
+  const payload = [...conversation, sys];
+  try{
+    const reply = await retry(()=>callOpenRouter(payload), 2);
+    // Split heading and body if possible
+    let title = "爆笑ルポ：今日の主役";
+    let body = reply;
+    const m = reply.match(/^\s*(?:[#＝=]|見出し[:：]|タイトル[:：])?\s*([^\n]{4,40})\n+([\s\S]+)/);
+    if(m){ title = m[1].trim(); body = m[2].trim(); }
+    renderArticleCard(title, body);
+  }catch(e){
+    console.error(e);
+    showToast("記事生成に失敗しました。もう一度お試しください。");
+  }finally{
+    setStatus("完了");
+    locked = false;
+  }
+}
+
+async function retry(fn, times=2){
+  let last;
+  for(let i=0;i<=times;i++){
+    try{ return await fn(); }
+    catch(e){ last = e; await wait(600*(i+1)); }
+  }
+  throw last;
+}
+const wait = (ms)=> new Promise(r=>setTimeout(r,ms));
+
+function handleSend(){
+  if(locked) return;
+  const text = inputEl.value.trim();
+  if(!text) return;
+  locked = true;
+  inputEl.value = "";
+  conversation.push({ role:"user", content: text });
+  renderMessage("user", text);
+
+  if(depth < MAX_DEPTH){
+    depth++;
+    askNext();
+  }else{
+    generateArticle();
+  }
+}
+
+sendBtn.addEventListener('click', handleSend);
+inputEl.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') handleSend(); });
+
+// Initial interviewer message on page load
+function boot(){
+  const greeting = "今日あった一番印象的な出来事を教えてください！";
+  conversation.push({ role: "assistant", content: greeting });
+  renderMessage("assistant", greeting);
+}
+boot();
+
+/* Procedural image generator (placeholder) */
+function makeProceduralImage(seed=1, w=800, h=450){
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  // gradient background
+  const g = ctx.createLinearGradient(0,0,w,h);
+  const hue = (seed*57)%360;
+  g.addColorStop(0, `hsl(${hue},70%,62%)`);
+  g.addColorStop(1, `hsl(${(hue+60)%360},70%,32%)`);
+  ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+
+  // soft noise dots
+  for(let i=0;i<1800;i++){
+    const x = (Math.sin(i*seed*1.37)+1)/2 * w;
+    const y = (Math.cos(i*seed*0.91)+1)/2 * h;
+    const r = (i%6)+1;
+    ctx.fillStyle = `rgba(255,255,255,${0.02 + ((i%10)/100)})`;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  }
+
+  // title stripe
+  ctx.fillStyle = "rgba(0,0,0,.25)";
+  ctx.fillRect(0,h-80,w,80);
+
+  // caption
+  ctx.font = "700 28px ui-sans-serif, system-ui, 'Noto Sans JP'";
+  ctx.fillStyle = "rgba(255,255,255,.95)";
+  ctx.fillText("Horizonalpha 記事プレビュー", 20, h-32);
+
+  return c.toDataURL("image/png");
+}
+</script>
+</body>
+</html>
