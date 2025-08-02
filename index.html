@@ -138,7 +138,6 @@ const conversation = [
 ];
 
 // --- Start of Critical Change ---
-// Start loading fonts immediately and store the promise.
 const fontsLoadedPromise = loadFonts();
 // --- End of Critical Change ---
 
@@ -189,13 +188,12 @@ function renderMessage(role, content){
 async function downloadPDF(headline, body) {
     setStatus("フォントを準備中…", true);
     try {
-        // Wait for the font loading promise to resolve
         await fontsLoadedPromise;
     } catch (error) {
         console.error("Font loading promise rejected:", error);
         showToast("フォントの読み込みに失敗したため、PDFを生成できません。");
         setStatus("エラー");
-        return; // Exit if fonts are not available
+        return;
     }
 
     setStatus("PDFを生成中…", true);
@@ -394,7 +392,6 @@ async function loadFonts() {
     } catch (e) {
         console.error("Font loading failed", e);
         showToast("フォントの読み込みに失敗しました。PDFが正しく表示されない可能性があります。");
-        // Re-throw the error to make the promise reject
         throw e;
     }
 }
