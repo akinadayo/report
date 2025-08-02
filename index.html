@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=Sawarabi+Mincho:wght@700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root{
   --bg: #0a0a0a;
@@ -73,6 +73,44 @@ header{padding:16px 24px;border-bottom:2px solid var(--accent);background:var(--
     .form { flex-direction: column; align-items: stretch; }
     .status-container { margin: 8px 0; }
 }
+
+/* Styles for the temporary container used for image generation */
+.image-render-container {
+    font-family: 'Sawarabi Mincho', serif;
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+    width: 1120px; /* A4-like wider layout */
+    padding: 60px;   /* Adjusted padding */
+    background: #ffffff !important;
+    color: #000000 !important;
+}
+.image-render-container h1 {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 48px;   /* Increased font size */
+    font-weight: 900;
+    color: #000000 !important;
+    text-align: center;
+    margin-bottom: 40px; /* Adjusted margin */
+}
+.image-render-container h2 {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 32px;   /* Increased font size */
+    font-weight: 700;
+    color: #1a1a1a !important;
+    border-bottom: 2px solid #333;
+    padding-bottom: 12px; /* Adjusted padding */
+    margin-top: 40px;     /* Adjusted margin */
+    margin-bottom: 24px;
+}
+.image-render-container p {
+    font-size: 20px;   /* Increased font size */
+    line-height: 1.9;  /* Adjusted line height */
+    color: #1a1a1a !important;
+    font-weight: 400;
+    margin-bottom: 20px; /* Adjusted margin */
+}
+
 </style>
 </head>
 <body>
@@ -137,10 +175,6 @@ const conversation = [
   }
 ];
 
-// --- Start of Critical Change ---
-const fontsLoadedPromise = loadFonts();
-// --- End of Critical Change ---
-
 window.startApp = function() {
   const nameInput = document.getElementById('userName');
   userName = nameInput.value.trim();
@@ -185,72 +219,51 @@ function renderMessage(role, content){
   chatEl.scrollTop = chatEl.scrollHeight;
 }
 
-async function downloadPDF(headline, body) {
-    setStatus("フォントを準備中…", true);
-    try {
-        await fontsLoadedPromise;
-    } catch (error) {
-        console.error("Font loading promise rejected:", error);
-        showToast("フォントの読み込みに失敗したため、PDFを生成できません。");
-        setStatus("エラー");
-        return;
-    }
+async function downloadImage(headline, body) {
+    setStatus("画像を生成中…", true);
 
-    setStatus("PDFを生成中…", true);
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF('p', 'mm', 'a4');
+    const renderContainer = document.createElement('div');
+    renderContainer.className = 'image-render-container';
 
-    pdf.addFont('SawarabiMincho-Regular.ttf', 'SawarabiMincho', 'normal');
-    pdf.addFont('NotoSansJP-Bold.ttf', 'NotoSansJP', 'bold');
+    const h1 = document.createElement('h1');
+    h1.textContent = headline;
+    renderContainer.appendChild(h1);
 
-    const margin = 15;
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const usableWidth = pageWidth - margin * 2;
-    let y = margin;
-
-    pdf.setFont('NotoSansJP', 'bold');
-    pdf.setFontSize(24);
-    pdf.setTextColor('#333333');
-    const headlineLines = pdf.splitTextToSize(headline, usableWidth);
-    pdf.text(headlineLines, pageWidth / 2, y, { align: 'center' });
-    y += (headlineLines.length * 10) + 10;
-
-    pdf.setFont('SawarabiMincho', 'normal');
-    pdf.setTextColor('#000000');
-
-    const paragraphs = body.split('\n\n');
-
-    for (const paragraph of paragraphs) {
-        if (y > pdf.internal.pageSize.getHeight() - margin) {
-            pdf.addPage();
-            y = margin;
-        }
-
+    body.split('\n\n').forEach(paragraph => {
         if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
-            pdf.setFont('NotoSansJP', 'bold');
-            pdf.setFontSize(16);
-            pdf.setTextColor('#007bff');
-            const subTitle = paragraph.slice(2, -2);
-            const subTitleLines = pdf.splitTextToSize(subTitle, usableWidth);
-            pdf.text(subTitleLines, margin, y);
-            y += (subTitleLines.length * 7) + 5;
+            const h2 = document.createElement('h2');
+            h2.textContent = paragraph.slice(2, -2);
+            renderContainer.appendChild(h2);
         } else {
-            pdf.setFont('SawarabiMincho', 'normal');
-            pdf.setFontSize(11);
-            pdf.setTextColor('#000000');
-            const textLines = pdf.splitTextToSize(paragraph, usableWidth);
-            pdf.text(textLines, margin, y);
-            y += (textLines.length * 7) + 5;
+            const p = document.createElement('p');
+            p.textContent = paragraph;
+            renderContainer.appendChild(p);
         }
-    }
+    });
+
+    document.body.appendChild(renderContainer);
 
     try {
-        pdf.save(`${userName}_scoop.pdf`);
-        showToast("PDFのダウンロードが完了しました！");
+        const canvas = await html2canvas(renderContainer, { 
+            scale: 1.5, 
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            width: renderContainer.scrollWidth,
+            height: renderContainer.scrollHeight
+        });
+        
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png');
+        link.download = `${userName}_scoop.png`;
+        link.click();
+
+        showToast("画像のダウンロードが完了しました！");
+
     } catch (err) {
-        console.error("PDF generation error:", err);
-        showToast("PDFの生成に失敗しました。");
+        console.error("Image generation error:", err);
+        showToast("画像の生成に失敗しました。");
     } finally {
+        document.body.removeChild(renderContainer);
         setStatus("完了 📰");
     }
 }
@@ -312,7 +325,7 @@ async function generateArticle(){
   setStatus("🚨 緊急速報作成中 🚨", true);
   const sys = {
     role: "system",
-    content: `これまでの取材内容を元に、${userName}さんに関する衝撃的なスクープ記事を書いてください.\n\n要件:\n- 見出しは「${userName}」を必ず含み、超インパクトのあるものに.\n- 本文は1500〜2400字程度で、複数のセクションに分けること.\n- 各セクションの最初に、**サブタイトル**を太字アスタリスク（例：**衝撃の第一声**）で必ず付けること.\n- 週刊誌のような大げさでドラマチックな文体で。「関係者の証言によると」「衝撃の事実が判明」などの決まり文句を多用.\n- ユーモアと誇張を効かせて、読者が爆笑するような内容に.\n- 日常の些細な出来事も世界的大事件のように扱う.\n\n形式:\n見出し\n\n**サブタイトル1**\n\n本文1\n\n**サブタイトル2**\n\n本文2...`
+    content: `これまでの取材内容を元に、${userName}さんに関する衝撃的なスクープ記事を書いてください。\n\n要件：\n- 見出しは「${userName}」を必ず含み、超インパクトのあるものに。\n- 本文は1500〜2400字程度で、複数のセクションに分けること。\n- 各セクションの最初に、**サブタイトル**を太字アスタリスク（例：**衝撃の第一声**）で必ず付けること。\n- 週刊誌のような大げさでドラマチックな文体で。「関係者の証言によると」「衝撃の事実が判明」などの決まり文句を多用。\n- ユーモアと誇張を効かせて、読者が爆笑するような内容に。\n- 日常の些細な出来事も世界的大事件のように扱う。\n\n形式：\n見出し\n\n**サブタイトル1**\n\n本文1\n\n**サブタイトル2**\n\n本文2...`
   };
   
   try{
@@ -321,7 +334,7 @@ async function generateArticle(){
     const headline = lines.shift() || "衝撃のスクープ！";
     const body = lines.join('\n\n');
     
-    await downloadPDF(headline, body);
+    await downloadImage(headline, body);
 
   }catch(e){
     showToast("スクープ作成失敗！もう一度！");
@@ -364,38 +377,6 @@ function boot(){
   renderMessage("assistant", greeting);
   setStatus("待機中");
 }
-
-// --- Start of Critical Change ---
-async function loadFonts() {
-    try {
-        const fontUrls = [
-            './fonts/SawarabiMincho-Regular.ttf',
-            './fonts/NotoSansJP-Bold.ttf'
-        ];
-        const responses = await Promise.all(fontUrls.map(url => fetch(url)));
-
-        for (const response of responses) {
-            if (!response.ok) {
-                throw new Error(`Failed to fetch font: ${response.status} ${response.statusText} for ${response.url}`);
-            }
-        }
-
-        const [sawarabi, notosans] = await Promise.all(responses.map(r => r.arrayBuffer()));
-
-        const { jsPDF } = window.jspdf;
-        jsPDF.API.events.push(['addFonts', function() {
-            this.addFileToVFS('SawarabiMincho-Regular.ttf', new Uint8Array(sawarabi));
-            this.addFont('SawarabiMincho-Regular.ttf', 'SawarabiMincho', 'normal');
-            this.addFileToVFS('NotoSansJP-Bold.ttf', new Uint8Array(notosans));
-            this.addFont('NotoSansJP-Bold.ttf', 'NotoSansJP', 'bold');
-        }]);
-    } catch (e) {
-        console.error("Font loading failed", e);
-        showToast("フォントの読み込みに失敗しました。PDFが正しく表示されない可能性があります。");
-        throw e;
-    }
-}
-// --- End of Critical Change ---
 
 </script>
 </body>
