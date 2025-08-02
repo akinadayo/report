@@ -186,6 +186,7 @@ header{padding:16px 24px;border-bottom:2px solid var(--accent);background:var(--
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    display: none; /* 初期状態では非表示 */
 }
 
 .control-btn {
@@ -513,7 +514,7 @@ closeOverlayBtn.addEventListener('click', () => {
     imageOverlay.style.display = 'none';
     inputBar.style.display = 'none';
     chatEl.innerHTML = '';
-    postGenerationControls.classList.remove('hidden');
+    postGenerationControls.style.display = 'flex';
 });
 
 reopenBtn.addEventListener('click', () => {
@@ -529,7 +530,7 @@ startOverBtn.addEventListener('click', () => {
 function boot(){
   // アプリケーション開始時（またはリセット時）は、入力バーを表示し、記事後コントロールを非表示にする
   inputBar.style.display = 'flex';
-  postGenerationControls.classList.add('hidden');
+    postGenerationControls.style.display = 'none';
 
   const greeting = `🚨 緊急取材開始！${userName}さん、今日起きた出来事で一番衝撃的だったことは何ですか！？世界が震撼する真実を教えてください！`;
   conversation.push({ role: "assistant", content: greeting });
