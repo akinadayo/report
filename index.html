@@ -63,7 +63,7 @@ header{padding:16px 24px;border-bottom:2px solid var(--accent);background:var(--
 .progress-bar{width: 100%; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width 0.5s ease; animation: indeterminate-progress 2s infinite ease-in-out;}
 @keyframes indeterminate-progress { 0% { transform: translateX(-100%) scaleX(0.5); } 50% { transform: translateX(0) scaleX(0.5); } 100% { transform: translateX(100%) scaleX(0.5); } }
 
-.toast{position:fixed;right:24px;bottom:24px;background:var(--accent);color:white;padding:16px 24px;border-radius:12px;box-shadow: var(--shadow);font-weight:700;max-width:min(80vw,480px);animation: toastSlide 0.5s ease;z-index: 2000;}
+.toast{position:fixed;right:24px;bottom:24px;background:var(--accent);color:white;padding:16px 24px;border-radius:12px;box-shadow: var(--shadow);font-weight:700;max-width:min(80vw,480px);animation: toastSlide 0.5s ease;z-index: 4000;}
 @keyframes toastSlide{from{transform:translateX(400px)} to{transform:translateX(0)}}
 .hidden{display:none}
 
@@ -111,6 +111,73 @@ header{padding:16px 24px;border-bottom:2px solid var(--accent);background:var(--
     margin-bottom: 20px; /* Adjusted margin */
 }
 
+/* Styles for the image preview overlay */
+.overlay-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+    padding: 20px;
+    backdrop-filter: blur(5px);
+}
+
+.overlay-content {
+    position: relative;
+    background: #fff;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: auto;
+    text-align: center;
+}
+
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 25px;
+    font-size: 40px;
+    color: #555;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.close-btn:hover {
+    transform: scale(1.1);
+    color: #000;
+}
+
+#generated-image-preview {
+    max-width: 100%;
+    max-height: calc(90vh - 120px);
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+.download-btn {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 14px 28px;
+    background: var(--accent);
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 12px;
+    transition: all 0.3s;
+    font-size: 18px;
+}
+.download-btn:hover {
+    background: var(--accent-2);
+    color: #000;
+    transform: scale(1.05);
+}
+
 </style>
 </head>
 <body>
@@ -151,6 +218,15 @@ header{padding:16px 24px;border-bottom:2px solid var(--accent);background:var(--
 
 <div id="toast" class="toast hidden"></div>
 
+<div id="image-overlay" class="overlay-container hidden">
+  <div class="overlay-content">
+    <span class="close-btn" id="close-overlay">&times;</span>
+    <img id="generated-image-preview" src="" alt="生成された記事のプレビュー">
+    <br>
+    <a id="download-image-btn" class="download-btn" href="#" download="scoop.png">画像をダウンロード</a>
+  </div>
+</div>
+
 <script type="module">
 const API_KEY = "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";
 const MODEL = "openrouter/horizon-alpha";
@@ -162,6 +238,10 @@ const statusEl = document.getElementById('status');
 const toastEl = document.getElementById('toast');
 const appEl = document.querySelector('.app');
 const progressBarContainer = document.getElementById('progress-bar-container');
+const imageOverlay = document.getElementById('image-overlay');
+const closeOverlayBtn = document.getElementById('close-overlay');
+const imagePreview = document.getElementById('generated-image-preview');
+const downloadImageBtn = document.getElementById('download-image-btn');
 
 let depth = 0;
 let locked = false;
@@ -219,7 +299,7 @@ function renderMessage(role, content){
   chatEl.scrollTop = chatEl.scrollHeight;
 }
 
-async function downloadImage(headline, body) {
+async function generateAndShowImage(headline, body) {
     setStatus("画像を生成中…", true);
 
     const renderContainer = document.createElement('div');
@@ -252,12 +332,15 @@ async function downloadImage(headline, body) {
             height: renderContainer.scrollHeight
         });
         
-        const link = document.createElement('a');
-        link.href = canvas.toDataURL('image/png');
-        link.download = `${userName}_scoop.png`;
-        link.click();
+        const imageDataUrl = canvas.toDataURL('image/png');
+        
+        imagePreview.src = imageDataUrl;
+        downloadImageBtn.href = imageDataUrl;
+        downloadImageBtn.download = `${userName}_scoop.png`;
+        
+        imageOverlay.classList.remove('hidden');
 
-        showToast("画像のダウンロードが完了しました！");
+        showToast("画像の生成が完了しました！");
 
     } catch (err) {
         console.error("Image generation error:", err);
@@ -325,7 +408,7 @@ async function generateArticle(){
   setStatus("🚨 緊急速報作成中 🚨", true);
   const sys = {
     role: "system",
-    content: `これまでの取材内容を元に、${userName}さんに関する衝撃的なスクープ記事を書いてください。\n\n要件：\n- 見出しは「${userName}」を必ず含み、超インパクトのあるものに。\n- 本文は1500〜2400字程度で、複数のセクションに分けること。\n- 各セクションの最初に、**サブタイトル**を太字アスタリスク（例：**衝撃の第一声**）で必ず付けること。\n- 週刊誌のような大げさでドラマチックな文体で。「関係者の証言によると」「衝撃の事実が判明」などの決まり文句を多用。\n- ユーモアと誇張を効かせて、読者が爆笑するような内容に。\n- 日常の些細な出来事も世界的大事件のように扱う。\n\n形式：\n見出し\n\n**サブタイトル1**\n\n本文1\n\n**サブタイトル2**\n\n本文2...`
+    content: `これまでの取材内容を元に、${userName}さんに関する衝撃的なスクープ記事を書いてください.\n\n要件：\n- 見出しは「${userName}」を必ず含み、超インパクトのあるものに.\n- 本文は1500〜2400字程度で、複数のセクションに分けること.\n- 各セクションの最初に、**サブタイトル**を太字アスタリスク（例：**衝撃の第一声**）で必ず付けること.\n- 週刊誌のような大げさでドラマチックな文体で。「関係者の証言によると」「衝撃の事実が判明」などの決まり文句を多用.\n- ユーモアと誇張を効かせて、読者が爆笑するような内容に.\n- 日常の些細な出来事も世界的大事件のように扱う.\n\n形式：\n見出し\n\n**サブタイトル1**\n\n本文1\n\n**サブタイトル2**\n\n本文2...`
   };
   
   try{
@@ -334,7 +417,7 @@ async function generateArticle(){
     const headline = lines.shift() || "衝撃のスクープ！";
     const body = lines.join('\n\n');
     
-    await downloadImage(headline, body);
+    await generateAndShowImage(headline, body);
 
   }catch(e){
     showToast("スクープ作成失敗！もう一度！");
@@ -369,6 +452,10 @@ inputEl.addEventListener('keydown', (e)=> {
       e.preventDefault();
       handleSend();
   }
+});
+
+closeOverlayBtn.addEventListener('click', () => {
+    imageOverlay.classList.add('hidden');
 });
 
 function boot(){
