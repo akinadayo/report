@@ -218,7 +218,7 @@ header{padding:16px 24px;border-bottom:2px solid var(--accent);background:var(--
 
 <div id="toast" class="toast hidden"></div>
 
-<div id="image-overlay" class="overlay-container hidden">
+<div id="image-overlay" class="overlay-container" style="display: none;">
   <div class="overlay-content">
     <span class="close-btn" id="close-overlay">&times;</span>
     <img id="generated-image-preview" src="" alt="生成された記事のプレビュー">
@@ -338,7 +338,7 @@ async function generateAndShowImage(headline, body) {
         downloadImageBtn.href = imageDataUrl;
         downloadImageBtn.download = `${userName}_scoop.png`;
         
-        imageOverlay.classList.remove('hidden');
+        imageOverlay.style.display = 'flex';
 
         showToast("画像の生成が完了しました！");
 
@@ -455,7 +455,7 @@ inputEl.addEventListener('keydown', (e)=> {
 });
 
 closeOverlayBtn.addEventListener('click', () => {
-    imageOverlay.classList.add('hidden');
+    imageOverlay.style.display = 'none';
 });
 
 function boot(){
