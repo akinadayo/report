@@ -67,13 +67,6 @@ header{padding:16px 24px;border-bottom:2px solid var(--accent);background:var(--
 @keyframes toastSlide{from{transform:translateX(400px)} to{transform:translateX(0)}}
 .hidden{display:none}
 
-@media (max-width: 768px) {
-    .titles p { display: none; }
-    .bubble { padding: 10px 14px; }
-    .form { flex-direction: column; align-items: stretch; }
-    .status-container { margin: 8px 0; }
-}
-
 /* Styles for the temporary container used for image generation */
 .image-render-container {
     font-family: 'Sawarabi Mincho', serif;
@@ -105,7 +98,7 @@ header{padding:16px 24px;border-bottom:2px solid var(--accent);background:var(--
 }
 .image-render-container p {
     font-size: 20px;   /* Increased font size */
-    line-height: 1.9;  /* Adjusted line height */
+    line-height: 1.7;  /* Adjusted line height */
     color: #1a1a1a !important;
     font-weight: 400;
     margin-bottom: 20px; /* Adjusted margin */
@@ -178,6 +171,22 @@ header{padding:16px 24px;border-bottom:2px solid var(--accent);background:var(--
     transform: scale(1.05);
 }
 
+.mobile-save-hint {
+    display: none; /* Hidden by default */
+    margin-top: 15px;
+    color: #888;
+    font-size: 16px;
+}
+
+@media (max-width: 768px) {
+    .titles p { display: none; }
+    .bubble { padding: 10px 14px; }
+    .form { flex-direction: column; align-items: stretch; }
+    .status-container { margin: 8px 0; }
+    .download-btn { display: none; } /* Hide download button on mobile */
+    .mobile-save-hint { display: block; } /* Show hint on mobile */
+}
+
 </style>
 </head>
 <body>
@@ -224,6 +233,7 @@ header{padding:16px 24px;border-bottom:2px solid var(--accent);background:var(--
     <img id="generated-image-preview" src="" alt="生成された記事のプレビュー">
     <br>
     <a id="download-image-btn" class="download-btn" href="#" download="scoop.png">画像をダウンロード</a>
+    <p class="mobile-save-hint">画像の端を長押しして保存</p>
   </div>
 </div>
 
@@ -408,7 +418,7 @@ async function generateArticle(){
   setStatus("🚨 緊急速報作成中 🚨", true);
   const sys = {
     role: "system",
-    content: `これまでの取材内容を元に、${userName}さんに関する衝撃的なスクープ記事を書いてください.\n\n要件：\n- 見出しは「${userName}」を必ず含み、超インパクトのあるものに.\n- 本文は1500〜2400字程度で、複数のセクションに分けること.\n- 各セクションの最初に、**サブタイトル**を太字アスタリスク（例：**衝撃の第一声**）で必ず付けること.\n- 週刊誌のような大げさでドラマチックな文体で。「関係者の証言によると」「衝撃の事実が判明」などの決まり文句を多用.\n- ユーモアと誇張を効かせて、読者が爆笑するような内容に.\n- 日常の些細な出来事も世界的大事件のように扱う.\n\n形式：\n見出し\n\n**サブタイトル1**\n\n本文1\n\n**サブタイトル2**\n\n本文2...`
+    content: `これまでの取材内容を元に、${userName}さんに関する衝撃的なスクープ記事を書いてください.\n\n要件:\n- 見出しは「${userName}」を必ず含み、超インパクトのあるものに.\n- 本文は750〜1200字程度で、複数のセクションに分けること.\n- 各セクションの最初に、**サブタイトル**を太字アスタリスク（例：**衝撃の第一声**）で必ず付けること.\n- 週刊誌のような大げさでドラマチックな文体で。「関係者の証言によると」「衝撃の事実が判明」などの決まり文句を多用.\n- ユーモアと誇張を効かせて、読者が爆笑するような内容に.\n- 日常の些細な出来事も世界的大事件のように扱う.\n\n形式:\n見出し\n\n**サブタイトル1**\n\n本文1\n\n**サブタイトル2**\n\n本文2...`
   };
   
   try{
