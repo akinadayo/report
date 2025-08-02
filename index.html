@@ -527,6 +527,10 @@ startOverBtn.addEventListener('click', () => {
 });
 
 function boot(){
+  // アプリケーション開始時（またはリセット時）は、入力バーを表示し、記事後コントロールを非表示にする
+  inputBar.style.display = 'flex';
+  postGenerationControls.classList.add('hidden');
+
   const greeting = `🚨 緊急取材開始！${userName}さん、今日起きた出来事で一番衝撃的だったことは何ですか！？世界が震撼する真実を教えてください！`;
   conversation.push({ role: "assistant", content: greeting });
   renderMessage("assistant", greeting);
