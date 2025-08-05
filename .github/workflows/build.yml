@@ -1,0 +1,26 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Create config file with API key
+      env:
+        OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      run: |
+        echo "const API_CONFIG = { API_KEY: \"$OPENROUTER_API_KEY\" };" > report/config.js
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: built-site
+        path: report/

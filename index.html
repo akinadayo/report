@@ -278,8 +278,9 @@ header{padding:16px 24px;border-bottom:2px solid var(--accent);background:var(--
   </div>
 </div>
 
+<script src="config.js"></script>
 <script type="module">
-const API_KEY = "YOUR_API_KEY_PLACEHOLDER";
+const API_KEY = typeof API_CONFIG !== 'undefined' ? API_CONFIG.API_KEY : "YOUR_API_KEY_PLACEHOLDER";
 const MODEL = "openrouter/horizon-beta";
 
 const chatEl = document.getElementById('chat');
