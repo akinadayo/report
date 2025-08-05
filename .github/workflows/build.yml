@@ -25,7 +25,12 @@ jobs:
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
-          echo "const API_CONFIG = { API_KEY: \"$OPENROUTER_API_KEY\" };" > config.js
+          cat > config.js << EOF
+          // Auto-generated config file
+          const API_CONFIG = {
+              API_KEY: "${OPENROUTER_API_KEY}"
+          };
+          EOF
           
       - name: Setup Pages
         uses: actions/configure-pages@v4

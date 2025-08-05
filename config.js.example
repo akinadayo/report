@@ -1,0 +1,5 @@
+// APIキーの設定例
+// このファイルをconfig.jsにコピーして、APIキーを設定してください
+const API_CONFIG = {
+    API_KEY: "YOUR_OPENROUTER_API_KEY_HERE"
+};
