@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=Sawarabi+Mincho:wght@700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root{
@@ -424,12 +425,29 @@ async function callOpenRouter(messages, retryCount = 0){
   };
   
   try {
-    const resp = await fetch("https://openrouter.ai/api/v1/chat/completions",{
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization": `Bearer ${API_KEY}`
-      },
+    // Vercel/Netlifyの場合はAPIプロキシを使用
+    const isVercel = window.location.hostname.includes('vercel.app');
+    const isNetlify = window.location.hostname.includes('netlify.app');
+    const isProduction = isVercel || isNetlify;
+    
+    const apiUrl = isProduction 
+      ? '/api/chat' 
+      : 'https://openrouter.ai/api/v1/chat/completions';
+    
+    console.log('Using API URL:', apiUrl, 'Production:', isProduction);
+    
+    const headers = {
+      "Content-Type": "application/json"
+    };
+    
+    // 直接APIを叩く場合のみAuthorizationヘッダーを追加
+    if (apiUrl.includes('openrouter.ai')) {
+      headers["Authorization"] = `Bearer ${API_KEY}`;
+    }
+    
+    const resp = await fetch(apiUrl, {
+      method: "POST",
+      headers,
       body: JSON.stringify(body)
     });
     if(!resp.ok) throw new Error("API error: " + resp.status);
