@@ -11,16 +11,16 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Create config file with API key
       env:
         OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       run: |
-        echo "const API_CONFIG = { API_KEY: \"$OPENROUTER_API_KEY\" };" > report/config.js
+        echo "const API_CONFIG = { API_KEY: \"$OPENROUTER_API_KEY\" };" > config.js
     
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: built-site
-        path: report/
+        path: ./

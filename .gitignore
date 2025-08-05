@@ -36,4 +36,4 @@ build/
 *.temp
 
 # Config files with sensitive data
-report/config.js
+config.js
