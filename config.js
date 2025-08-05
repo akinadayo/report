@@ -2,5 +2,5 @@
 // ローカル開発時: このファイルに直接APIキーを記入してください
 // 本番環境: GitHub Actionsでこのファイルが自動生成されます
 const API_CONFIG = {
-    API_KEY: "" // 
+    API_KEY: "YOUR_OPENROUTER_API_KEY_HERE"
 };
