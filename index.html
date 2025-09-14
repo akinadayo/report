@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>爆速スクープジェネレーター | AIが暴く衝撃の真実</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=Sawarabi+Mincho:wght@700&display=swap" rel="stylesheet">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+:root{
+  --bg: #0a0a0a;
+  --fg: #ffffff;
+  --accent: #ff0066;
+  --accent-2: #00ffcc;
+  --surface: #1a1a1a;
+  --card: #ffffff;
+  --shadow: 0 12px 32px rgba(255,0,102,.3);
+  --radius: 16px;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font-family: 'Noto Sans JP', "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;}
+
+.app{display:flex;flex-direction:column;height:100vh}
+
+.welcome-screen{position:fixed;inset:0;background:linear-gradient(135deg, #ff0066, #00ffcc);z-index:1000;display:flex;align-items:center;justify-content:center;}
+.welcome-content{text-align:center;color:white;animation: pulse 2s ease infinite;padding: 20px;}
+.welcome-content h1{font-size:clamp(32px, 8vw, 48px);margin-bottom:32px;text-shadow: 0 4px 12px rgba(0,0,0,.3);}
+.name-input{padding:16px 24px;font-size:20px;border:none;border-radius:8px;margin-bottom:16px;width:clamp(250px, 80vw, 300px);}
+.start-btn{padding:16px 40px;font-size:20px;border:none;border-radius:8px;background:white;color:#ff0066;font-weight:bold;cursor:pointer;transition:transform 0.2s;}
+.start-btn:hover{transform:scale(1.05);}
+@keyframes pulse{0%,100%{transform:scale(1)} 50%{transform:scale(1.02)}}
+
+header{padding:16px 24px;border-bottom:2px solid var(--accent);background:var(--surface);display:flex;align-items:center;gap:16px;box-shadow: 0 4px 12px rgba(255,0,102,.2);}
+.logo{width:48px;height:48px;border-radius:8px;background: conic-gradient(from 45deg, var(--accent), var(--accent-2), var(--accent));animation: spin 20s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.titles h1{font-size:clamp(18px, 4vw, 24px);margin:0;font-weight:900;letter-spacing:.08em;background:linear-gradient(90deg, var(--accent), var(--accent-2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.titles p{font-size:14px;margin:4px 0 0;color:#aaa}
+
+.container{display:flex;flex-direction:column;flex:1;min-height:0}
+.chat{flex:1;overflow-y:auto;padding:12px;background: radial-gradient(800px 800px at 20% 20%, rgba(255,0,102,.1), transparent), radial-gradient(800px 800px at 80% 80%, rgba(0,255,204,.1), transparent), var(--bg);}
+.row{display:flex;gap:12px;margin:16px 0;align-items:flex-start}
+.bubble{max-width:min(800px, 85%);padding:12px 16px;border-radius:16px;line-height:1.8;box-shadow: var(--shadow);animation: slideIn 0.5s ease;}
+@keyframes slideIn{from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)}}
+.ai .avatar,.user .avatar{flex:0 0 40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:14px;}
+.ai .avatar{background:linear-gradient(135deg, var(--accent), var(--accent-2));box-shadow: 0 0 20px rgba(255,0,102,.5);}
+.user .avatar{background:linear-gradient(135deg, #7c3aed, #06b6d4);color:white;}
+.ai .bubble{background:var(--surface);border:2px solid rgba(255,0,102,.3);}
+.user .bubble{background:linear-gradient(135deg, #7c3aed, #06b6d4);color:white;border:none;}
+.meta{font-size:12px;color:#888;margin-bottom:8px;letter-spacing:.1em;text-transform:uppercase;}
+
+/* 入力エリアのスタイル - v2 */
+.input-bar{border-top:2px solid var(--accent);background:var(--surface);padding:20px;}
+.input-bar .status-container { margin-bottom:12px; text-align:center; }
+.input-bar .form{display:flex;gap:12px;align-items:center;}
+.input-bar .form input[type=text]{flex:1;padding:18px 24px;border-radius:12px;background:#0a0a0a;color:var(--fg);border:2px solid #333;outline:none;font-size:18px;transition:border-color 0.3s;height:60px;width:100%;box-sizing:border-box;}
+.input-bar .form input[type=text]:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(255,0,102,.2);}
+.input-bar .form button{padding:18px 36px;border-radius:12px;border:none;font-weight:900;font-size:18px;cursor:pointer;background:linear-gradient(135deg, var(--accent), var(--accent-2));color:white;transition:transform 0.2s;box-shadow: 0 8px 20px rgba(255,0,102,.3);height:60px;white-space:nowrap;flex-shrink:0;}
+.form button:active{transform:translateY(2px)}
+
+/* ステータスコンテナは上で定義 */
+.status{color:#888;font-size:14px;}
+.progress-bar-container{width: 100%; height: 4px; background-color: #333; border-radius: 2px; overflow: hidden;}
+.progress-bar{width: 100%; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width 0.5s ease; animation: indeterminate-progress 2s infinite ease-in-out;}
+@keyframes indeterminate-progress { 0% { transform: translateX(-100%) scaleX(0.5); } 50% { transform: translateX(0) scaleX(0.5); } 100% { transform: translateX(100%) scaleX(0.5); } }
+
+.toast{position:fixed;right:24px;bottom:24px;background:var(--accent);color:white;padding:16px 24px;border-radius:12px;box-shadow: var(--shadow);font-weight:700;max-width:min(80vw,480px);animation: toastSlide 0.5s ease;z-index: 4000;}
+@keyframes toastSlide{from{transform:translateX(400px)} to{transform:translateX(0)}}
+.hidden{display:none}
+
+/* Styles for the temporary container used for image generation */
+.image-render-container {
+    font-family: 'Sawarabi Mincho', serif;
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+    width: 1120px; /* A4-like wider layout */
+    padding: 60px;   /* Adjusted padding */
+    background: #ffffff !important;
+    color: #000000 !important;
+}
+.image-render-container h1 {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 48px;   /* Increased font size */
+    font-weight: 900;
+    color: #000000 !important;
+    text-align: center;
+    margin-bottom: 40px; /* Adjusted margin */
+}
+.image-render-container h2 {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 32px;   /* Increased font size */
+    font-weight: 700;
+    color: #1a1a1a !important;
+    border-bottom: 2px solid #333;
+    padding-bottom: 12px; /* Adjusted padding */
+    margin-top: 40px;     /* Adjusted margin */
+    margin-bottom: 24px;
+}
+.image-render-container p {
+    font-size: 20px;   /* Increased font size */
+    line-height: 1.7;  /* Adjusted line height */
+    color: #1a1a1a !important;
+    font-weight: 400;
+    margin-bottom: 20px; /* Adjusted margin */
+}
+
+/* Styles for the image preview overlay */
+.overlay-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+    padding: 20px;
+    backdrop-filter: blur(5px);
+}
+
+.overlay-content {
+    position: relative;
+    background: #fff;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: auto;
+    text-align: center;
+}
+
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 25px;
+    font-size: 40px;
+    color: #555;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+.close-btn:hover {
+    transform: scale(1.1);
+    color: #000;
+}
+
+#generated-image-preview {
+    max-width: 100%;
+    max-height: calc(90vh - 120px);
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+.download-btn {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 14px 28px;
+    background: var(--accent);
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    border-radius: 12px;
+    transition: all 0.3s;
+    font-size: 18px;
+}
+.download-btn:hover {
+    background: var(--accent-2);
+    color: #000;
+    transform: scale(1.05);
+}
+
+.mobile-save-hint {
+    display: none; /* Hidden by default */
+    margin-top: 15px;
+    color: #888;
+    font-size: 16px;
+}
+
+.post-generation-controls {
+    padding: 40px 20px;
+    text-align: center;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    display: none; /* 初期状態では非表示 */
+}
+
+.control-btn {
+    padding: 16px 32px;
+    border-radius: 12px;
+    border: none;
+    font-weight: 900;
+    font-size: 18px;
+    cursor: pointer;
+    background: var(--surface);
+    color: var(--fg);
+    transition: all 0.3s;
+    margin: 10px;
+    border: 2px solid var(--accent-2);
+    min-width: 280px;
+}
+
+.control-btn.accent {
+    background: var(--accent);
+    color: white;
+    border: 2px solid var(--accent);
+}
+
+.control-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+@media (max-width: 768px) {
+    .titles p { display: none; }
+    .bubble { padding: 10px 14px; }
+    .form { flex-direction: column; align-items: stretch; max-width: 100%; }
+    .form input[type=text] { min-height: 48px; padding: 14px 18px; font-size: 16px; }
+    .form button { min-height: 48px; padding: 14px 24px; font-size: 16px; }
+    .status-container { margin: 8px 0; max-width: 100%; }
+    .download-btn { display: none; } /* Hide download button on mobile */
+    .mobile-save-hint { display: block; } /* Show hint on mobile */
+}
+
+</style>
+</head>
+<body>
+<div class="welcome-screen" id="welcome">
+  <div class="welcome-content">
+    <h1>🚨 爆速スクープジェネレーター 🚨</h1>
+    <p style="color: white; font-size: 18px; margin-bottom: 24px;">
+      無料モデル: <strong>DeepSeek Chat V3.1</strong> を使用
+    </p>
+    <input type="text" id="userName" class="name-input" placeholder="あなたの名前を入力">
+    <br>
+    <input type="password" id="apiKey" class="name-input" placeholder="OpenRouterのAPIキーを入力" style="margin-bottom: 8px;">
+    <p style="color: rgba(255,255,255,0.8); font-size: 14px; margin: 8px 0 16px;">
+      <a href="https://openrouter.ai/keys" target="_blank" style="color: white; text-decoration: underline;">APIキーの取得はこちら</a>
+    </p>
+    <button class="start-btn" onclick="startApp()">スクープを始める！</button>
+  </div>
+</div>
+
+<div class="app" style="display:none;">
+  <header>
+    <div class="logo" aria-hidden="true"></div>
+    <div class="titles">
+      <h1>爆速スクープジェネレーター</h1>
+      <p>DeepSeek Chat V3.1 (無料) で動作中</p>
+    </div>
+  </header>
+  
+  <div class="container">
+    <main id="chat" class="chat" aria-live="polite"></main>
+    <section id="input-bar" class="input-bar" style="padding: 20px 40px;">
+      <div style="width: 100%; max-width: 1600px; margin: 0 auto;">
+          <div class="status-container" style="margin-bottom: 12px; text-align: center;">
+              <div id="progress-bar-container" class="progress-bar-container hidden">
+                  <div class="progress-bar"></div>
+              </div>
+              <span id="status" class="status">待機中</span>
+          </div>
+          <div class="form" style="display: flex; gap: 16px; align-items: center; width: 100%;">
+            <input id="text" type="text" placeholder="今日の出来事を教えてください…" autocomplete="off" style="flex: 1; padding: 20px 30px; font-size: 20px; height: 65px; border-radius: 12px; background: #0a0a0a; color: white; border: 2px solid #333; min-width: 0;" />
+            <button id="send" aria-label="送信" style="padding: 20px 45px; font-size: 20px; height: 65px; border-radius: 12px; background: linear-gradient(135deg, #ff0066, #00ffcc); color: white; border: none; font-weight: 900; cursor: pointer; flex-shrink: 0;">送信</button>
+          </div>
+      </div>
+    </section>
+    <div id="post-generation-controls" class="post-generation-controls hidden">
+        <button id="reopen-btn" class="control-btn">最新の記事をもう一度表示</button>
+        <button id="start-over-btn" class="control-btn accent">最初からやり直す</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<div id="image-overlay" class="overlay-container" style="display: none;">
+  <div class="overlay-content">
+    <span class="close-btn" id="close-overlay">&times;</span>
+    <img id="generated-image-preview" src="" alt="生成された記事のプレビュー">
+    <br>
+    <a id="download-image-btn" class="download-btn" href="#" download="scoop.png">画像をダウンロード</a>
+    <p class="mobile-save-hint">画像を長押しして保存</p>
+  </div>
+</div>
+
+<script type="module">
+// OpenRouter APIの設定
+const MODEL = "deepseek/deepseek-chat-v3.1:free"; // 無料モデルを使用
+let USER_API_KEY = "";
+
+const chatEl = document.getElementById('chat');
+const inputEl = document.getElementById('text');
+const sendBtn = document.getElementById('send');
+const statusEl = document.getElementById('status');
+const toastEl = document.getElementById('toast');
+const appEl = document.querySelector('.app');
+const progressBarContainer = document.getElementById('progress-bar-container');
+const imageOverlay = document.getElementById('image-overlay');
+const closeOverlayBtn = document.getElementById('close-overlay');
+const imagePreview = document.getElementById('generated-image-preview');
+const downloadImageBtn = document.getElementById('download-image-btn');
+const inputBar = document.getElementById('input-bar');
+const postGenerationControls = document.getElementById('post-generation-controls');
+const reopenBtn = document.getElementById('reopen-btn');
+const startOverBtn = document.getElementById('start-over-btn');
+
+let depth = 0;
+let locked = false;
+let userName = "";
+const MAX_DEPTH = 5;
+let lastGeneratedImageDataUrl = null;
+
+const conversation = [
+  {
+    role: "system",
+    content: `あなたは週刊誌のAI記者です。ユーザーの話を面白おかしく膨らませて取材します。
+
+重要なルール：
+1. ユーザーの返答をしっかり理解して、その内容に基づいた質問をする
+2. 前の会話の文脈を踏まえて自然に会話を続ける
+3. 話の矛盾や勘違いをしない
+4. 質問は1つだけ、短く的確に
+5. 大げさで面白いが、話の流れは守る
+6. ユーザーが言ってないことを勝手に付け加えない`
+  }
+];
+
+window.startApp = function() {
+  const nameInput = document.getElementById('userName');
+  const apiKeyInput = document.getElementById('apiKey');
+  userName = nameInput.value.trim();
+  USER_API_KEY = apiKeyInput.value.trim();
+  
+  if (!userName) {
+    alert("お名前を入力してください！");
+    return;
+  }
+  
+  if (!USER_API_KEY) {
+    alert("OpenRouterのAPIキーを入力してください！");
+    return;
+  }
+  
+  // APIキーをローカルストレージに保存（次回以降の利便性のため）
+  localStorage.setItem('openrouter_api_key', USER_API_KEY);
+  
+  document.getElementById('welcome').style.display = 'none';
+  appEl.style.display = 'flex';
+  boot();
+}
+
+// ページ読み込み時に保存されたAPIキーがあれば自動入力
+window.addEventListener('DOMContentLoaded', () => {
+  const savedApiKey = localStorage.getItem('openrouter_api_key');
+  if (savedApiKey) {
+    const apiKeyInput = document.getElementById('apiKey');
+    if (apiKeyInput) {
+      apiKeyInput.value = savedApiKey;
+    }
+  }
+})
+
+function showToast(msg, timeout=3200){
+  toastEl.textContent = msg;
+  toastEl.classList.remove('hidden');
+  window.clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>toastEl.classList.add('hidden'), timeout);
+}
+
+function renderMessage(role, content){
+  const row = document.createElement('div');
+  row.className = `row ${role === 'assistant' ? 'ai' : 'user'}`;
+  
+  const avatar = document.createElement('div');
+  avatar.className = 'avatar';
+  avatar.textContent = role === 'assistant' ? 'AI' : userName.substring(0,2);
+  
+  const wrap = document.createElement('div');
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  meta.textContent = role === 'assistant' ? 'AIジャーナリスト' : userName;
+  
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = content;
+  
+  wrap.appendChild(meta);
+  wrap.appendChild(bubble);
+  row.appendChild(avatar);
+  row.appendChild(wrap);
+  chatEl.appendChild(row);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+async function generateAndShowImage(headline, body) {
+    setStatus("画像を生成中…", true);
+
+    const renderContainer = document.createElement('div');
+    renderContainer.className = 'image-render-container';
+
+    const h1 = document.createElement('h1');
+    h1.textContent = headline;
+    renderContainer.appendChild(h1);
+
+    body.split('\n\n').forEach(paragraph => {
+        if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
+            const h2 = document.createElement('h2');
+            h2.textContent = paragraph.slice(2, -2);
+            renderContainer.appendChild(h2);
+        } else {
+            const p = document.createElement('p');
+            p.textContent = paragraph;
+            renderContainer.appendChild(p);
+        }
+    });
+
+    document.body.appendChild(renderContainer);
+
+    try {
+        const canvas = await html2canvas(renderContainer, { 
+            scale: 1.5, 
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            width: renderContainer.scrollWidth,
+            height: renderContainer.scrollHeight
+        });
+        
+        lastGeneratedImageDataUrl = canvas.toDataURL('image/png');
+        
+        imagePreview.src = lastGeneratedImageDataUrl;
+        downloadImageBtn.href = lastGeneratedImageDataUrl;
+        downloadImageBtn.download = `${userName}_scoop.png`;
+        
+        imageOverlay.style.display = 'flex';
+
+        showToast("画像の生成が完了しました！");
+
+    } catch (err) {
+        console.error("Image generation error:", err);
+        showToast("画像の生成に失敗しました。");
+    } finally {
+        document.body.removeChild(renderContainer);
+        setStatus("完了 📰");
+    }
+}
+
+function setStatus(msg, showProgress = false) {
+    statusEl.textContent = msg;
+    progressBarContainer.classList.toggle('hidden', !showProgress);
+}
+
+async function callOpenRouter(messages, retryCount = 0){
+  locked = true;
+  const body = {
+    model: MODEL,
+    temperature: 0.9,
+    max_tokens: 2500,
+    messages
+  };
+  
+  try {
+    // OpenRouter APIを直接呼び出し（ユーザーのAPIキーを使用）
+    const apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
+    
+    console.log('Using model:', MODEL);
+    
+    const headers = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${USER_API_KEY}`,
+      "HTTP-Referer": window.location.href,
+      "X-Title": "Scoop Generator"
+    };
+    
+    const resp = await fetch(apiUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body)
+    });
+    
+    if(!resp.ok) {
+      const errorData = await resp.text();
+      console.error('API Error:', resp.status, errorData);
+      if (resp.status === 401) {
+        throw new Error("APIキーが無効です。正しいキーを入力してください。");
+      }
+      throw new Error("API error: " + resp.status);
+    }
+    
+    const data = await resp.json();
+    return data?.choices?.[0]?.message?.content ?? "";
+  } catch(e) {
+      console.error(e);
+      if (e.message.includes('APIキーが無効')) {
+          showToast(e.message);
+          throw e;
+      }
+      if (retryCount < 1) {
+          setStatus(`エラー発生。3秒後に再試行します…`, true);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          return callOpenRouter(messages, retryCount + 1);
+      } else {
+          showToast("通信エラー！APIキーを確認してください。");
+          throw e;
+      }
+  }
+}
+
+async function askNext(){
+  setStatus("取材中…🎤", true);
+  try{
+    // 会話履歴全体を送って文脈を理解させる
+    const contextMessages = [
+      conversation[0], // システムプロンプト
+      ...conversation.slice(1).map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }))
+    ];
+    
+    const reply = await callOpenRouter(contextMessages);
+    conversation.push({ role:"assistant", content: reply });
+    renderMessage("assistant", reply);
+  }catch(e){
+    console.error(e);
+  } finally {
+    setStatus("待機中");
+    locked = false;
+  }
+}
+
+async function generateArticle(){
+  setStatus("🚨 緊急速報作成中 🚨", true);
+  const sys = {
+    role: "system",
+    content: `以下の取材内容を元に、${userName}さんの日常を超爆笑スクープ記事にしてください。
+
+重要：質問は一切しないでください。記事のみを出力してください。
+
+執筆スタイル：
+- 虚構新聞やボーボボ風の大げさで馬鹿馬鹿しい文体
+- どんな些細なことも国家レベルの大事件として扱う
+- 真面目な口調で馬鹿げたことを書く（シリアスな笑い）
+- 「定食屋が混んでた」→「前代未聞の飲食店包囲網」みたいな大仰な表現
+- 実際の出来事は守りつつ、解釈と表現を極限まで誇張
+
+笑いのテクニック：
+- 大げさな比喩（「まるで○○のような」を多用）
+- 関係者の証言を捏造（「近所の猫も驚きを隠せない様子」等）
+- 専門家の分析を創作（「○○評論家によると歴史的瞬間」等）
+- 数字や統計を適当に作る（「実に97.3%の確率で」等）
+- 深読みしすぎる考察（「これが意味するものは...」）
+- 急に哲学的になる
+- 最後は必ず壮大なオチで締める
+
+要件：
+- 見出しは「【速報】${userName}氏、○○で世界を震撼させる」みたいな形式
+- 本文750〜1200字、セクションごとに**サブタイトル**必須
+- とにかく読者が吹き出すような馬鹿げた内容に
+- でも取材で聞いた基本的事実（場所・物・人）は正確に
+
+形式（この形式を守って出力）：
+見出し
+
+**サブタイトル1**
+
+本文1
+
+**サブタイトル2**
+
+本文2
+
+**サブタイトル3**
+
+本文3`
+  };
+  
+  try{
+    // 記事生成用のメッセージを構築
+    const articleMessages = [
+      sys,
+      {
+        role: "user",
+        content: "取材内容を元に記事を書いてください。質問はしないで、記事のみを出力してください。"
+      },
+      ...conversation.slice(1) // 初回のシステムプロンプトを除いた会話履歴
+    ];
+    
+    const reply = await callOpenRouter(articleMessages);
+    const lines = reply.split('\n\n');
+    const headline = lines.shift() || "衝撃のスクープ！";
+    const body = lines.join('\n\n');
+    
+    await generateAndShowImage(headline, body);
+
+  }catch(e){
+    showToast("スクープ作成失敗！もう一度！");
+  }finally{
+    setStatus("完了 📰");
+    locked = false;
+  }
+}
+
+function handleSend(){
+  if(locked) return;
+  const text = inputEl.value.trim();
+  if(!text) return;
+  
+  inputEl.value = "";
+  
+  renderMessage("user", text);
+  conversation.push({ role:"user", content: text });
+  
+  locked = true;
+  if(depth < MAX_DEPTH){
+    depth++;
+    askNext();
+  }else{
+    generateArticle();
+  }
+}
+
+sendBtn.addEventListener('click', handleSend);
+inputEl.addEventListener('keydown', (e)=> {
+  if(e.key === 'Enter' && !e.isComposing) {
+      e.preventDefault();
+      handleSend();
+  }
+});
+
+closeOverlayBtn.addEventListener('click', () => {
+    imageOverlay.style.display = 'none';
+    inputBar.style.display = 'none';
+    chatEl.innerHTML = '';
+    postGenerationControls.style.display = 'flex';
+});
+
+reopenBtn.addEventListener('click', () => {
+    if (lastGeneratedImageDataUrl) {
+        imageOverlay.style.display = 'flex';
+    }
+});
+
+startOverBtn.addEventListener('click', () => {
+    window.location.reload();
+});
+
+function boot(){
+  // アプリケーション開始時（またはリセット時）は、入力バーを表示し、記事後コントロールを非表示にする
+  inputBar.style.display = 'flex';
+    postGenerationControls.style.display = 'none';
+
+  const greeting = `こんにちは${userName}さん！私は週刊誌のAI記者です。今日あった出来事で、一番印象的だったことを教えてください。どんな些細なことでも大スクープに仕立て上げますよ！`;
+  conversation.push({ role: "assistant", content: greeting });
+  renderMessage("assistant", greeting);
+  setStatus("待機中");
+}
+
+</script>
+</body>
+</html>
